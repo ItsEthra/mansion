@@ -4,12 +4,12 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 
 pub struct MansionServerBuilder<M: MessageType, F: CallbackFuture<Option<M>, Error>> {
-    on_msg: Arc<Mutex<dyn FnMut(&ClientContext, M) -> F + Send + Sync + 'static>>,
+    on_msg: Arc<Mutex<dyn FnMut(Arc<ClientContext>, M) -> F + Send + Sync + 'static>>,
     stack: Vec<Box<dyn Intercept>>,
 }
 
 impl<M: MessageType, F: CallbackFuture<Option<M>, Error>> MansionServerBuilder<M, F> {
-    pub fn new(on_message: impl FnMut(&ClientContext, M) -> F + Send + Sync + 'static) -> Self {
+    pub fn new(on_message: impl FnMut(Arc<ClientContext>, M) -> F + Send + Sync + 'static) -> Self {
         Self {
             on_msg: Arc::new(Mutex::new(on_message)),
             stack: vec![],

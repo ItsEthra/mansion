@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use mansion::server::MansionServer;
+use serde::{Deserialize, Serialize};
 use std::error::Error;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -10,9 +10,16 @@ enum Message {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    MansionServer::<Message, _>::builder(move |_, m| async move {
+    MansionServer::<Message, _>::builder(move |ctx, m| async move {
         match m {
-            Message::AddRequest(a, b) => Ok(Some(Message::AddResponse(a + b))),
+            Message::AddRequest(a, b) => {
+                if a == 0 && b == 3 {
+                    ctx.close().await;
+                    Ok(None)
+                } else {
+                    Ok(Some(Message::AddResponse(a + b)))
+                }
+            },
             _ => unreachable!(),
         }
     })

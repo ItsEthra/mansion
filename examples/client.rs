@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use mansion::client::MansionClient;
+use serde::{Deserialize, Serialize};
 use std::error::Error;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -14,9 +14,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .connect("127.0.0.1:9999")
         .await?;
 
-    println!("Pre");
-    dbg!(cl.send(Message::AddRequest(5, 10)).await?);
-    println!("Post");
+    dbg!(cl.send(Message::AddRequest(0, 1)).await?);
+    dbg!(cl.send(Message::AddRequest(0, 2)).await?);
+    dbg!(cl.send(Message::AddRequest(0, 3)).await?);
+    dbg!(cl.send(Message::AddRequest(0, 4)).await?);
 
     Ok(())
 }
