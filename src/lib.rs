@@ -3,9 +3,6 @@
 #[cfg(all(not(feature = "client"), not(feature = "server")))]
 compile_error!("You must enable either `client` or `server` features");
 
-#[cfg(all(feature = "client", feature = "server"))]
-compile_error!("You should not use both `server` and `client` features");
-
 #[cfg(any(feature = "client", feature = "server"))]
 mod error;
 #[cfg(any(feature = "client", feature = "server"))]
