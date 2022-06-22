@@ -5,7 +5,7 @@ pub use context::*;
 use flume::{bounded, unbounded, Receiver, Sender};
 
 use crate::{CallbackFuture, Error, InterceptStack, MessageType, SendSync};
-use std::{future::Future, sync::Arc};
+use std::{future::Future, sync::Arc, net::SocketAddr};
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::{
@@ -14,16 +14,17 @@ use tokio::{
     },
 };
 
-pub struct MansionServer<M: MessageType, S: SendSync, F: CallbackFuture<Option<M>, Error>> {
-    on_msg: Arc<dyn Fn(Arc<ClientContext<S>>, M) -> F + Send + Sync + 'static>,
+pub struct MansionServer<M: MessageType, S: SendSync, F1: CallbackFuture<Option<M>, Error>, F2: CallbackFuture<(), Error>> {
+    on_msg: Arc<dyn Fn(Arc<ClientContext<S>>, M) -> F1 + Send + Sync + 'static>,
+    on_dc: Arc<Box<dyn Fn(Arc<S>, SocketAddr) -> F2 + Send + Sync + 'static>>,
     stack: InterceptStack,
     state: Arc<S>,
 }
 
-impl<M: MessageType, S: SendSync, F: CallbackFuture<Option<M>, Error>> MansionServer<M, S, F> {
+impl<M: MessageType, S: SendSync, F1: CallbackFuture<Option<M>, Error>, F2: CallbackFuture<(), Error>> MansionServer<M, S, F1, F2> {
     pub fn builder(
-        on_message: impl Fn(Arc<ClientContext<S>>, M) -> F + Send + Sync + 'static,
-    ) -> MansionServerBuilder<M, S, F> {
+        on_message: impl Fn(Arc<ClientContext<S>>, M) -> F1 + Send + Sync + 'static,
+    ) -> MansionServerBuilder<M, S, F1, F2> {
         MansionServerBuilder::new(on_message)
     }
 
@@ -55,13 +56,25 @@ impl<M: MessageType, S: SendSync, F: CallbackFuture<Option<M>, Error>> MansionSe
                     }),
                 });
 
-                tokio::spawn(read_half(
-                    self.on_msg.clone(),
-                    cn.clone(),
-                    send,
-                    shut.clone(),
-                    rx,
-                ));
+                tokio::spawn({
+                    let on_msg = self.on_msg.clone();
+                    let on_dc = self.on_dc.clone();
+                    let cn = cn.clone();
+                    let shut = shut.clone();
+                    let state = self.state.clone();
+
+                    async move {
+                        let _ = read_half(
+                            on_msg,
+                            cn,
+                            send,
+                            shut,
+                            rx,
+                        ).await;
+
+                        let _ = (on_dc)(state, addr).await;
+                    }
+                });
                 tokio::spawn(write_half(cn, recv, shut, tx));
             }
         }

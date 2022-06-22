@@ -11,7 +11,7 @@ enum Message {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    MansionServer::<Message, Mutex<HashMap<SocketAddr, i32>>, _>::builder(
+    MansionServer::<Message, Mutex<HashMap<SocketAddr, i32>>, _, _>::builder(
         move |ctx, m| async move {
             match m {
                 Message::AddRequest(a, b) => {
@@ -22,7 +22,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                         let lock = &mut *ctx.state().lock().await;
                         let t: &mut i32 = lock.entry(ctx.addr()).or_default();
                         *t += 1;
-                        dbg!(ctx.addr(), *t);
+                        dbg!(ctx.addr(), *t, lock.len());
 
                         Ok(Some(Message::AddResponse(a + b)))
                     }
@@ -31,6 +31,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
             }
         },
     )
+    // This is required unfortunatelly, even if you don't want to use it.
+    .on_disconnect(move |st, addr| async move {
+        st.lock().await.remove(&addr);
+
+        Ok(())
+    })
     .state(Mutex::new(HashMap::new()))
     .finish()
     .listen("0.0.0.0:9999")
