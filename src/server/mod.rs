@@ -2,9 +2,11 @@ mod builder;
 pub use builder::*;
 mod context;
 pub use context::*;
+mod intercept;
+pub(crate) use intercept::*;
 use flume::{bounded, unbounded, Receiver, Sender};
 
-use crate::{CallbackFuture, Error, InterceptStack, MessageType, SendSync};
+use crate::{CallbackFuture, Error, MessageType, SendSync};
 use std::{future::Future, sync::Arc, net::SocketAddr};
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},

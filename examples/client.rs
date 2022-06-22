@@ -14,10 +14,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .connect("127.0.0.1:9999")
         .await?;
 
-    dbg!(cl.send(Message::AddRequest(0, 1)).await?);
-    dbg!(cl.send(Message::AddRequest(0, 2)).await?);
-    dbg!(cl.send(Message::AddRequest(0, 3)).await?);
-    dbg!(cl.send(Message::AddRequest(0, 4)).await?);
+    dbg!(cl.send_wait(Message::AddRequest(0, 1)).await?);
+    dbg!(cl.send_wait(Message::AddRequest(0, 2)).await?);
+    dbg!(cl.send_wait(Message::AddRequest(0, 3)).await?);
+    dbg!(cl.send_wait(Message::AddRequest(0, 4)).await?);
 
     Ok(())
 }

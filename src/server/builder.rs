@@ -1,11 +1,11 @@
-use super::{ClientContext, Error, MansionServer};
-use crate::{CallbackFuture, Intercept, MessageType, SendSync};
+use super::{ClientContext, Error, MansionServer, ServerIntercept};
+use crate::{CallbackFuture, MessageType, SendSync};
 use std::{sync::Arc, net::SocketAddr};
 
 pub struct MansionServerBuilder<M: MessageType, S: SendSync, F1: CallbackFuture<Option<M>, Error>, F2: CallbackFuture<(), Error>> {
     on_msg: Arc<dyn Fn(Arc<ClientContext<S>>, M) -> F1 + Send + Sync + 'static>,
     on_dc: Option<Box<dyn Fn(Arc<S>, SocketAddr) -> F2 + Send + Sync + 'static>>,
-    stack: Vec<Box<dyn Intercept>>,
+    stack: Vec<Box<dyn ServerIntercept>>,
     state: Option<S>,
 }
 
@@ -33,7 +33,7 @@ impl<M: MessageType, S: SendSync, F1: CallbackFuture<Option<M>, Error>, F2: Call
         self
     }
 
-    pub fn intercept(mut self, inc: impl Intercept) -> Self {
+    pub fn intercept(mut self, inc: impl ServerIntercept) -> Self {
         self.stack.push(Box::new(inc));
         self
     }

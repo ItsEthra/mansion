@@ -1,11 +1,11 @@
-use super::{InterceptStack, MansionClient};
-use crate::{req_map::RequestMap, Intercept, MessageType};
-use flume::unbounded;
+use super::{InterceptStack, MansionClient, ClientIntercept};
+use crate::{req_map::RequestMap, MessageType};
 use std::{marker::PhantomData, sync::Arc};
 use tokio::net::{TcpStream, ToSocketAddrs};
+use flume::unbounded;
 
 pub struct MansionClientBuilder<M: MessageType> {
-    stack: Vec<Box<dyn Intercept>>,
+    stack: Vec<Box<dyn ClientIntercept>>,
     ph_m: PhantomData<M>,
 }
 
@@ -17,7 +17,7 @@ impl<M: MessageType> MansionClientBuilder<M> {
         }
     }
 
-    pub fn intercept(mut self, inc: impl Intercept) -> Self {
+    pub fn intercept(mut self, inc: impl ClientIntercept) -> Self {
         self.stack.push(Box::new(inc));
         self
     }

@@ -6,10 +6,10 @@ use tokio::net::{
     TcpStream,
 };
 
-pub(crate) type InterceptStack = Arc<[Box<dyn Intercept>]>;
+pub(crate) type InterceptStack = Arc<[Box<dyn ClientIntercept>]>;
 
 #[async_trait]
-pub trait Intercept: SendSync {
+pub trait ClientIntercept: SendSync {
     async fn on_connect(&self, _tcp: &mut TcpStream) -> Result<(), super::Error> {
         Ok(())
     }

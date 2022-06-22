@@ -7,10 +7,6 @@
 // compile_error!("You should not use both `server` and `client` features");
 
 // #[cfg(any(feature = "client", feature = "server"))]
-mod intercept;
-// #[cfg(any(feature = "client", feature = "server"))]
-pub use intercept::*;
-// #[cfg(any(feature = "client", feature = "server"))]
 mod error;
 // #[cfg(any(feature = "client", feature = "server"))]
 pub use error::*;

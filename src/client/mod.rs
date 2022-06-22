@@ -1,7 +1,9 @@
 mod builder;
 pub use builder::*;
+mod intercept;
+pub(crate) use intercept::*;
 
-use crate::{req_map::RequestMap, Error, InterceptStack, MessageType};
+use crate::{req_map::RequestMap, Error, MessageType};
 use flume::{Receiver, Sender};
 use std::sync::Arc;
 use tokio::{
@@ -19,7 +21,7 @@ impl<M: MessageType> MansionClient<M> {
         MansionClientBuilder::new()
     }
 
-    pub async fn send(&self, msg: M) -> crate::Result<M> {
+    pub async fn send_wait(&self, msg: M) -> crate::Result<M> {
         if let Some((id, waiter)) = self.req_map.push().await {
             self.send_queue
                 .send_async((id, msg))
@@ -29,6 +31,14 @@ impl<M: MessageType> MansionClient<M> {
         } else {
             Err(Error::IdOverflow)
         }
+    }
+
+    pub async fn send_ignore(&self, msg: M) -> crate::Result<()> {
+        self.send_queue
+            .send_async((0, msg))
+            .await
+            .map_err(|_| Error::Closed)?;
+        Ok(())
     }
 }
 
