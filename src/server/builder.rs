@@ -1,10 +1,9 @@
 use super::{ClientContext, Error, MansionServer};
 use crate::{CallbackFuture, Intercept, MessageType, SendSync};
 use std::sync::Arc;
-use tokio::sync::Mutex;
 
 pub struct MansionServerBuilder<M: MessageType, S: SendSync, F: CallbackFuture<Option<M>, Error>> {
-    on_msg: Arc<Mutex<dyn FnMut(Arc<ClientContext<S>>, M) -> F + Send + Sync + 'static>>,
+    on_msg: Arc<dyn Fn(Arc<ClientContext<S>>, M) -> F + Send + Sync + 'static>,
     stack: Vec<Box<dyn Intercept>>,
     state: Option<S>,
 }
@@ -13,10 +12,10 @@ impl<M: MessageType, S: SendSync, F: CallbackFuture<Option<M>, Error>>
     MansionServerBuilder<M, S, F>
 {
     pub fn new(
-        on_message: impl FnMut(Arc<ClientContext<S>>, M) -> F + Send + Sync + 'static,
+        on_message: impl Fn(Arc<ClientContext<S>>, M) -> F + Send + Sync + 'static,
     ) -> Self {
         Self {
-            on_msg: Arc::new(Mutex::new(on_message)),
+            on_msg: Arc::new(on_message),
             stack: vec![],
             state: None,
         }

@@ -12,18 +12,17 @@ use tokio::{
         tcp::{OwnedReadHalf, OwnedWriteHalf},
         TcpListener, ToSocketAddrs,
     },
-    sync::Mutex,
 };
 
 pub struct MansionServer<M: MessageType, S: SendSync, F: CallbackFuture<Option<M>, Error>> {
-    on_msg: Arc<Mutex<dyn FnMut(Arc<ClientContext<S>>, M) -> F + Send + Sync + 'static>>,
+    on_msg: Arc<dyn Fn(Arc<ClientContext<S>>, M) -> F + Send + Sync + 'static>,
     stack: InterceptStack,
     state: Arc<S>,
 }
 
 impl<M: MessageType, S: SendSync, F: CallbackFuture<Option<M>, Error>> MansionServer<M, S, F> {
     pub fn builder(
-        on_message: impl FnMut(Arc<ClientContext<S>>, M) -> F + Send + Sync + 'static,
+        on_message: impl Fn(Arc<ClientContext<S>>, M) -> F + Send + Sync + 'static,
     ) -> MansionServerBuilder<M, S, F> {
         MansionServerBuilder::new(on_message)
     }
@@ -75,7 +74,7 @@ struct Connection<S: SendSync> {
 }
 
 async fn read_half<S: SendSync, M: MessageType, F: CallbackFuture<Option<M>, Error>>(
-    on_msg: Arc<Mutex<dyn FnMut(Arc<ClientContext<S>>, M) -> F + Send + Sync + 'static>>,
+    on_msg: Arc<dyn Fn(Arc<ClientContext<S>>, M) -> F + Send + Sync + 'static>,
     cn: Arc<Connection<S>>,
     send: Sender<(u16, M)>,
     shut: Receiver<()>,
@@ -100,7 +99,7 @@ async fn read_half<S: SendSync, M: MessageType, F: CallbackFuture<Option<M>, Err
         }
 
         let msg = bincode::deserialize::<M>(&buf[..])?;
-        if let Some(msg) = (on_msg.lock().await)(cn.ctx.clone(), msg).await? {
+        if let Some(msg) = on_msg(cn.ctx.clone(), msg).await? {
             send.send_async((req_id, msg))
                 .await
                 .map_err(|_| Error::Closed)?;
