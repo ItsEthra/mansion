@@ -2,10 +2,10 @@ mod builder;
 pub use builder::*;
 mod context;
 pub use context::*;
-use flume::{unbounded, Receiver, Sender, bounded};
+use flume::{bounded, unbounded, Receiver, Sender};
 
-use crate::{CallbackFuture, Error, InterceptStack, MessageType};
-use std::{sync::Arc, future::Future};
+use crate::{CallbackFuture, Error, InterceptStack, MessageType, SendSync};
+use std::{future::Future, sync::Arc};
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::{
@@ -15,15 +15,16 @@ use tokio::{
     sync::Mutex,
 };
 
-pub struct MansionServer<M: MessageType, F: CallbackFuture<Option<M>, Error>> {
-    on_msg: Arc<Mutex<dyn FnMut(Arc<ClientContext>, M) -> F + Send + Sync + 'static>>,
+pub struct MansionServer<M: MessageType, S: SendSync, F: CallbackFuture<Option<M>, Error>> {
+    on_msg: Arc<Mutex<dyn FnMut(Arc<ClientContext<S>>, M) -> F + Send + Sync + 'static>>,
     stack: InterceptStack,
+    state: Arc<S>,
 }
 
-impl<M: MessageType, F: CallbackFuture<Option<M>, Error>> MansionServer<M, F> {
+impl<M: MessageType, S: SendSync, F: CallbackFuture<Option<M>, Error>> MansionServer<M, S, F> {
     pub fn builder(
-        on_message: impl FnMut(Arc<ClientContext>, M) -> F + Send + Sync + 'static,
-    ) -> MansionServerBuilder<M, F> {
+        on_message: impl FnMut(Arc<ClientContext<S>>, M) -> F + Send + Sync + 'static,
+    ) -> MansionServerBuilder<M, S, F> {
         MansionServerBuilder::new(on_message)
     }
 
@@ -48,27 +49,34 @@ impl<M: MessageType, F: CallbackFuture<Option<M>, Error>> MansionServer<M, F> {
 
                 let cn = Arc::new(Connection {
                     stack: self.stack.clone(),
-                    ctx: Arc::new(ClientContext {
+                    ctx: Arc::new(ClientContext::<S> {
+                        state: self.state.clone(),
                         addr,
                         stop,
                     }),
                 });
 
-                tokio::spawn(read_half(self.on_msg.clone(), cn.clone(), send, shut.clone(), rx));
+                tokio::spawn(read_half(
+                    self.on_msg.clone(),
+                    cn.clone(),
+                    send,
+                    shut.clone(),
+                    rx,
+                ));
                 tokio::spawn(write_half(cn, recv, shut, tx));
             }
         }
     }
 }
 
-struct Connection {
+struct Connection<S: SendSync> {
     stack: InterceptStack,
-    ctx: Arc<ClientContext>,
+    ctx: Arc<ClientContext<S>>,
 }
 
-async fn read_half<M: MessageType, F: CallbackFuture<Option<M>, Error>>(
-    on_msg: Arc<Mutex<dyn FnMut(Arc<ClientContext>, M) -> F + Send + Sync + 'static>>,
-    cn: Arc<Connection>,
+async fn read_half<S: SendSync, M: MessageType, F: CallbackFuture<Option<M>, Error>>(
+    on_msg: Arc<Mutex<dyn FnMut(Arc<ClientContext<S>>, M) -> F + Send + Sync + 'static>>,
+    cn: Arc<Connection<S>>,
     send: Sender<(u16, M)>,
     shut: Receiver<()>,
     mut rx: OwnedReadHalf,
@@ -100,8 +108,8 @@ async fn read_half<M: MessageType, F: CallbackFuture<Option<M>, Error>>(
     }
 }
 
-async fn write_half<M: MessageType>(
-    cn: Arc<Connection>,
+async fn write_half<S: SendSync, M: MessageType>(
+    cn: Arc<Connection<S>>,
     recv: Receiver<(u16, M)>,
     shut: Receiver<()>,
     mut tx: OwnedWriteHalf,
@@ -126,7 +134,10 @@ async fn write_half<M: MessageType>(
     Err(Error::Closed)
 }
 
-async fn cancel_on_close<T>(close: &Receiver<()>, other: impl Future<Output = T>) -> crate::Result<T> {
+async fn cancel_on_close<T>(
+    close: &Receiver<()>,
+    other: impl Future<Output = T>,
+) -> crate::Result<T> {
     tokio::select! {
         val = other => {
             Ok(val)
