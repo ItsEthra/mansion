@@ -104,19 +104,15 @@ async fn read_half<S: SendSync, M: MessageType, F: CallbackFuture<Option<M>, Err
     let mut buf = vec![];
 
     loop {
-        let len = cancel_on_close(&shut, rx.read_u32()).await?? as usize;
-        buf.resize(len, 0);
-
         let req_id = cancel_on_close(&shut, rx.read_u16()).await??;
 
-        for i in cn.stack.iter() {
-            i.on_pre_recv(&mut rx, addr, req_id, len, &mut buf).await?;
-        }
+        let len = cancel_on_close(&shut, rx.read_u32()).await?? as usize;
+        buf.resize(len, 0);
 
         cancel_on_close(&shut, rx.read_exact(&mut buf[..])).await??;
 
         for i in cn.stack.iter() {
-            i.on_post_recv(&mut rx, addr, req_id, len, &mut buf).await?;
+            i.on_recv(&mut rx, addr, req_id, &mut buf).await?;
         }
 
         let msg = bincode::deserialize::<M>(&buf[..])?;
@@ -138,18 +134,14 @@ async fn write_half<S: SendSync, M: MessageType>(
     while let Ok((req_id, msg)) = recv.recv_async().await {
         let mut buf = bincode::serialize(&msg)?;
 
-        cancel_on_close(&shut, tx.write_u32(buf.len() as u32)).await??;
         cancel_on_close(&shut, tx.write_u16(req_id)).await??;
 
         for i in cn.stack.iter() {
-            i.on_pre_send(&mut tx, addr, req_id, buf.len(), &mut buf).await?;
+            i.on_send(&mut tx, addr, req_id, &mut buf).await?;
         }
 
+        cancel_on_close(&shut, tx.write_u32(buf.len() as u32)).await??;
         cancel_on_close(&shut, tx.write_all(&buf[..])).await??;
-
-        for i in cn.stack.iter() {
-            i.on_post_send(&mut tx, addr, req_id, buf.len(), &mut buf).await?;
-        }
     }
 
     Err(Error::Closed)

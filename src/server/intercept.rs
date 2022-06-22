@@ -18,45 +18,21 @@ pub trait ServerIntercept: SendSync {
         Ok(())
     }
 
-    async fn on_pre_recv(
+    async fn on_recv(
         &self,
         _rx: &mut OwnedReadHalf,
         _addr: SocketAddr,
         _req_id: u16,
-        _len: usize,
         _buf: &mut Vec<u8>,
     ) -> Result<(), super::Error> {
         Ok(())
     }
 
-    async fn on_post_recv(
-        &self,
-        _rx: &mut OwnedReadHalf,
-        _addr: SocketAddr,
-        _req_id: u16,
-        _len: usize,
-        _buf: &mut Vec<u8>,
-    ) -> Result<(), super::Error> {
-        Ok(())
-    }
-
-    async fn on_pre_send(
+    async fn on_send(
         &self,
         _tx: &mut OwnedWriteHalf,
         _addr: SocketAddr,
         _req_id: u16,
-        _len: usize,
-        _buf: &mut Vec<u8>,
-    ) -> Result<(), super::Error> {
-        Ok(())
-    }
-
-    async fn on_post_send(
-        &self,
-        _tx: &mut OwnedWriteHalf,
-        _addr: SocketAddr,
-        _req_id: u16,
-        _len: usize,
         _buf: &mut Vec<u8>,
     ) -> Result<(), super::Error> {
         Ok(())

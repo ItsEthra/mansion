@@ -49,19 +49,14 @@ pub(crate) async fn read_half<M: MessageType>(
 ) -> crate::Result<()> {
     let mut buf = vec![];
     loop {
-        let len = rx.read_u32().await? as usize;
-        buf.resize(len, 0);
-
         let req_id = rx.read_u16().await?;
 
-        for i in stack.iter() {
-            i.on_pre_recv(&mut rx, req_id, len, &mut buf).await?;
-        }
-
+        let len = rx.read_u32().await? as usize;
+        buf.resize(len, 0);
         rx.read_exact(&mut buf[..]).await?;
 
         for i in stack.iter() {
-            i.on_post_recv(&mut rx, req_id, len, &mut buf).await?;
+            i.on_recv(&mut rx, req_id, &mut buf).await?;
         }
 
         let msg = bincode::deserialize::<M>(&buf[..])?;
@@ -78,23 +73,17 @@ pub(crate) async fn write_half<M: MessageType>(
     mut tx: OwnedWriteHalf,
 ) -> crate::Result<()> {
     while let Ok((req_id, m)) = send_queue.recv_async().await {
-        // @TODO: Serialize into buffer to prevert re-allocation.
         let mut data = bincode::serialize(&m)?;
 
-        tx.write_u32(data.len() as u32).await?;
         tx.write_u16(req_id).await?;
 
         for i in stack.iter() {
-            i.on_pre_send(&mut tx, req_id, data.len(), &mut data)
+            i.on_send(&mut tx, req_id, &mut data)
                 .await?;
         }
 
+        tx.write_u32(data.len() as u32).await?;
         tx.write_all(&data[..]).await?;
-
-        for i in stack.iter() {
-            i.on_post_send(&mut tx, req_id, data.len(), &mut data)
-                .await?;
-        }
     }
 
     Err(Error::Closed)
