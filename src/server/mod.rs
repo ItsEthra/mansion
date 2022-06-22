@@ -4,7 +4,6 @@ mod context;
 pub use context::*;
 mod intercept;
 pub(crate) use intercept::*;
-use flume::{bounded, unbounded, Receiver, Sender};
 
 use crate::{CallbackFuture, Error, MessageType, SendSync};
 use std::{future::Future, sync::Arc, net::SocketAddr};
@@ -15,6 +14,7 @@ use tokio::{
         TcpListener, ToSocketAddrs,
     },
 };
+use flume::{bounded, unbounded, Receiver, Sender};
 
 pub struct MansionServer<M: MessageType, S: SendSync, F1: CallbackFuture<Option<M>, Error>, F2: CallbackFuture<(), Error>> {
     on_msg: Arc<dyn Fn(Arc<ClientContext<S>>, M) -> F1 + Send + Sync + 'static>,
@@ -37,7 +37,7 @@ impl<M: MessageType, S: SendSync, F1: CallbackFuture<Option<M>, Error>, F2: Call
             if let Ok((mut tcp, addr)) = listen.accept().await {
                 let mut skip = false;
                 for i in self.stack.iter() {
-                    if i.on_connect(&mut tcp).await.is_err() {
+                    if i.on_connect(&mut tcp, addr).await.is_err() {
                         skip = true;
                     }
                 }
@@ -62,6 +62,7 @@ impl<M: MessageType, S: SendSync, F1: CallbackFuture<Option<M>, Error>, F2: Call
                     let on_msg = self.on_msg.clone();
                     let on_dc = self.on_dc.clone();
                     let cn = cn.clone();
+                    let stack = cn.stack.clone();
                     let shut = shut.clone();
                     let state = self.state.clone();
 
@@ -72,12 +73,16 @@ impl<M: MessageType, S: SendSync, F1: CallbackFuture<Option<M>, Error>, F2: Call
                             send,
                             shut,
                             rx,
+                            addr
                         ).await;
 
+                        for i in stack.iter() {
+                            let _ = i.on_disconnect(addr).await;
+                        }
                         let _ = (on_dc)(state, addr).await;
                     }
                 });
-                tokio::spawn(write_half(cn, recv, shut, tx));
+                tokio::spawn(write_half(cn, recv, shut, tx, addr));
             }
         }
     }
@@ -94,6 +99,7 @@ async fn read_half<S: SendSync, M: MessageType, F: CallbackFuture<Option<M>, Err
     send: Sender<(u16, M)>,
     shut: Receiver<()>,
     mut rx: OwnedReadHalf,
+    addr: SocketAddr,
 ) -> crate::Result<()> {
     let mut buf = vec![];
 
@@ -104,13 +110,13 @@ async fn read_half<S: SendSync, M: MessageType, F: CallbackFuture<Option<M>, Err
         let req_id = cancel_on_close(&shut, rx.read_u16()).await??;
 
         for i in cn.stack.iter() {
-            i.on_pre_recv(&mut rx, req_id, len, &mut buf).await?;
+            i.on_pre_recv(&mut rx, addr, req_id, len, &mut buf).await?;
         }
 
         cancel_on_close(&shut, rx.read_exact(&mut buf[..])).await??;
 
         for i in cn.stack.iter() {
-            i.on_post_recv(&mut rx, req_id, len, &mut buf).await?;
+            i.on_post_recv(&mut rx, addr, req_id, len, &mut buf).await?;
         }
 
         let msg = bincode::deserialize::<M>(&buf[..])?;
@@ -127,6 +133,7 @@ async fn write_half<S: SendSync, M: MessageType>(
     recv: Receiver<(u16, M)>,
     shut: Receiver<()>,
     mut tx: OwnedWriteHalf,
+    addr: SocketAddr,
 ) -> crate::Result<()> {
     while let Ok((req_id, msg)) = recv.recv_async().await {
         let mut buf = bincode::serialize(&msg)?;
@@ -135,13 +142,13 @@ async fn write_half<S: SendSync, M: MessageType>(
         cancel_on_close(&shut, tx.write_u16(req_id)).await??;
 
         for i in cn.stack.iter() {
-            i.on_pre_send(&mut tx, req_id, buf.len(), &mut buf).await?;
+            i.on_pre_send(&mut tx, addr, req_id, buf.len(), &mut buf).await?;
         }
 
         cancel_on_close(&shut, tx.write_all(&buf[..])).await??;
 
         for i in cn.stack.iter() {
-            i.on_post_send(&mut tx, req_id, buf.len(), &mut buf).await?;
+            i.on_post_send(&mut tx, addr, req_id, buf.len(), &mut buf).await?;
         }
     }
 

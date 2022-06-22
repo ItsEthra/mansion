@@ -1,22 +1,22 @@
 #![allow(where_clauses_object_safety)]
 
-// #[cfg(all(not(feature = "client"), not(feature = "server")))]
-// compile_error!("You must enable either `client` or `server` features");
+#[cfg(all(not(feature = "client"), not(feature = "server")))]
+compile_error!("You must enable either `client` or `server` features");
 
-// #[cfg(all(feature = "client", feature = "server"))]
-// compile_error!("You should not use both `server` and `client` features");
+#[cfg(all(feature = "client", feature = "server"))]
+compile_error!("You should not use both `server` and `client` features");
 
-// #[cfg(any(feature = "client", feature = "server"))]
+#[cfg(any(feature = "client", feature = "server"))]
 mod error;
-// #[cfg(any(feature = "client", feature = "server"))]
+#[cfg(any(feature = "client", feature = "server"))]
 pub use error::*;
 
-// #[cfg(feature = "client")]
+#[cfg(feature = "client")]
 mod req_map;
 
-// #[cfg(feature = "client")]
+#[cfg(feature = "client")]
 pub mod client;
-// #[cfg(feature = "server")]
+#[cfg(feature = "server")]
 pub mod server;
 
 pub use async_trait::async_trait;
