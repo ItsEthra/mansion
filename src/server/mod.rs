@@ -3,7 +3,7 @@ pub use builder::*;
 mod context;
 pub use context::*;
 mod intercept;
-pub(crate) use intercept::*;
+pub use intercept::*;
 
 use crate::{CallbackFuture, Error, MessageType, SendSync};
 use std::{future::Future, sync::Arc, net::SocketAddr};

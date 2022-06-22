@@ -1,7 +1,7 @@
 mod builder;
 pub use builder::*;
 mod intercept;
-pub(crate) use intercept::*;
+pub use intercept::*;
 
 use crate::{req_map::RequestMap, Error, MessageType};
 use flume::{Receiver, Sender};
