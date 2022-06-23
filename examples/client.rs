@@ -4,8 +4,8 @@ use std::error::Error;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 enum Message {
-    AddRequest(i32, i32),
-    AddResponse(i32),
+    AddRequest(i32, i32, String),
+    AddResponse(i32, String),
 }
 
 #[tokio::main]
@@ -17,7 +17,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .unwrap();
 
     println!("Pre");
-    dbg!(client.send_wait(Message::AddRequest(1, 2)).await?);
+    dbg!(client.send_wait(Message::AddRequest(1, 2, "Yohan".into())).await?);
     println!("Post");
 
     Ok(())

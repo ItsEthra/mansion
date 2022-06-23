@@ -1,11 +1,12 @@
-use mansion::{server::MansionServer, SimpleAdapter};
+use mansion::{server::{MansionServer, Event}, SimpleAdapter};
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 
+
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 enum Message {
-    AddRequest(i32, i32),
-    AddResponse(i32),
+    AddRequest(i32, i32, String),
+    AddResponse(i32, String),
 }
 
 #[tokio::main]
@@ -19,7 +20,18 @@ async fn main() -> Result<(), Box<dyn Error>> {
         dbg!(&e);
 
         if e.is_message() {
-            e.reply(Message::AddResponse(5)).await?;
+            match e.event() {
+                Event::Connected => todo!(),
+                Event::Disconnected => todo!(),
+                Event::Message(m) => match m {
+                    Message::AddRequest(a, b, name) => {
+                        let sum = *a + *b;
+                        let fmt = format!("Hello, {name}");
+                        e.reply(Message::AddResponse(sum, fmt)).await?
+                    },
+                    _ => {},
+                },
+            }
         }
     }
 
