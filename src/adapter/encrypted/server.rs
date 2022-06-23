@@ -47,7 +47,6 @@ impl<M: MessageType + EncryptionTarget> Adapter for EncryptedServerAdapter<M> {
             let public = PublicKey::from(&self.secret);
             log::trace!("Public: {public:?}");
             
-            dbg!("ADSADSDASDASADSDSADSA");
             buf.put_u8(0);
             buf.put_slice(PublicKey::from(&self.secret).as_bytes());
 

@@ -2,14 +2,13 @@ use mansion::{client::MansionClient, EncryptionTarget, EncryptedClientAdapter};
 use rsa::{RsaPublicKey, pkcs1::FromRsaPublicKey};
 use serde::{Deserialize, Serialize};
 use std::error::Error;
-use log::LevelFilter;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 enum Message {
     EncryptionRequest,
     EncryptionResponse,
-    AddRequest(i32, i32),
-    AddResponse(i32),
+    AddRequest(i32, i32, String),
+    AddResponse(i32, String),
 }
 
 impl EncryptionTarget for Message {
@@ -32,7 +31,7 @@ impl EncryptionTarget for Message {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    env_logger::builder().filter_level(LevelFilter::Trace).init();
+    // env_logger::builder().filter_level(log::LevelFilter::Trace).init();
 
     let client = MansionClient::<Message>::builder()
         .with_adapter(EncryptedClientAdapter::new(
@@ -47,7 +46,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     println!("Encrypt end");
 
     println!("Pre");
-    dbg!(client.send_wait(Message::AddRequest(1, 2)).await?);
+    dbg!(client.send_wait(Message::AddRequest(1, 2, "Yohan".into())).await?);
     println!("Post");
 
     Ok(())

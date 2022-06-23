@@ -2,14 +2,13 @@ use mansion::{server::{MansionServer, Event}, EncryptedServerAdapter, Encryption
 use rsa::{RsaPrivateKey, pkcs8::FromPrivateKey};
 use serde::{Deserialize, Serialize};
 use std::error::Error;
-use log::LevelFilter;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 enum Message {
     EncryptionRequest,
     EncryptionResponse,
-    AddRequest(i32, i32),
-    AddResponse(i32),
+    AddRequest(i32, i32, String),
+    AddResponse(i32, String),
 }
 
 impl EncryptionTarget for Message {
@@ -32,7 +31,7 @@ impl EncryptionTarget for Message {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    env_logger::builder().filter_level(LevelFilter::Trace).init();
+    // env_logger::builder().filter_level(log::LevelFilter::Trace).init();
     
     let server = MansionServer::<Message>::builder()
         .with_adapter(EncryptedServerAdapter::new(
@@ -43,13 +42,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     while let Some(e) = server.message().await {
         dbg!(&e);
-        
+
         match e.event() {
             Event::Message(m) => match m {
                 Message::EncryptionRequest => e.reply(Message::EncryptionResponse).await?,
-                Message::AddRequest(a, b) => {
+                Message::AddRequest(a, b, s) => {
                     let sum = *a + *b;
-                    e.reply(Message::AddResponse(sum)).await?
+                    let fmt = format!("Hello, {s}");
+                    e.reply(Message::AddResponse(sum, fmt)).await?
                 },
                 _ => {}
             },
