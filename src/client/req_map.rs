@@ -6,6 +6,7 @@ use tokio::sync::{
     oneshot::{self, Receiver, Sender},
     Mutex,
 };
+use crate::Error;
 
 pub struct RequestMap<M> {
     current: AtomicU16,
@@ -21,15 +22,15 @@ impl<M> RequestMap<M> {
     }
 
     /// Returns `None` if id collision occured.
-    pub async fn push(&self) -> Option<(u16, Receiver<M>)> {
+    pub async fn push(&self) -> crate::Result<(u16, Receiver<M>)> {
         let this = self.current.fetch_add(1, Ordering::SeqCst);
         let (tx, rx) = oneshot::channel();
         let mut lock = self.map.lock().await;
         if lock.contains_key(&this) {
-            None
+            Err(Error::IdCollision)
         } else {
             lock.insert(this, tx);
-            Some((this, rx))
+            Ok((this, rx))
         }
     }
 

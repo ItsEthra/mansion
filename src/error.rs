@@ -5,7 +5,7 @@ pub enum Error {
     IoError(std::io::Error),
     Bincode(bincode::Error),
     Closed,
-    IdOverflow,
+    IdCollision,
 }
 
 impl std::error::Error for Error {}
@@ -15,7 +15,7 @@ impl fmt::Display for Error {
             Error::IoError(e) => write!(f, "IoError. {e}"),
             Error::Bincode(e) => write!(f, "Bincode. {e}"),
             Error::Closed => write!(f, "Connection closed."),
-            Error::IdOverflow => write!(f, "Id overflow occured."),
+            Error::IdCollision => write!(f, "Id collision occured."),
         }
     }
 }
