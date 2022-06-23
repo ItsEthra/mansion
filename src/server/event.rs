@@ -10,7 +10,10 @@ pub struct ServerEvent<M: MessageType> {
 
 impl<M: MessageType + Debug> Debug for ServerEvent<M> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("ServerEvent").field("event", &self.event).field("addr", &self.addr).finish()
+        f.debug_struct("ServerEvent")
+            .field("event", &self.event)
+            .field("addr", &self.addr)
+            .finish()
     }
 }
 

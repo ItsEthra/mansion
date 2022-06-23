@@ -17,11 +17,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     while let Some(e) = server.message().await {
         dbg!(&e);
-        
+
         if e.is_message() {
             e.reply(Message::AddResponse(5)).await?;
         }
     }
-        
+
     Ok(())
 }

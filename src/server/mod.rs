@@ -3,13 +3,17 @@ pub use builder::*;
 mod event;
 pub use event::*;
 
-use tokio::{net::tcp::{OwnedReadHalf, OwnedWriteHalf}, io::{AsyncReadExt, AsyncWriteExt}, sync::mpsc::{Sender, Receiver}};
+use tokio::{
+    net::tcp::{OwnedReadHalf, OwnedWriteHalf},
+    io::{AsyncReadExt, AsyncWriteExt},
+    sync::mpsc::{Sender, Receiver},
+};
 use crate::{MessageType, Adapter, Error};
 use std::{sync::Arc, net::SocketAddr};
 use cursored::Cursored;
 
 pub struct MansionServer<M: MessageType> {
-    recv: flume::Receiver<ServerEvent<M>>
+    recv: flume::Receiver<ServerEvent<M>>,
 }
 
 impl<M: MessageType> MansionServer<M> {
@@ -61,7 +65,7 @@ pub(crate) async fn read_half<M: MessageType>(
 pub(crate) async fn write_half<M: MessageType>(
     cn: Arc<Connection<M>>,
     mut queue: Receiver<(u16, M)>,
-    mut tx: OwnedWriteHalf
+    mut tx: OwnedWriteHalf,
 ) -> crate::Result<()> {
     let mut buf = Vec::new();
 

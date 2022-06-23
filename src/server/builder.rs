@@ -48,8 +48,6 @@ impl<M: MessageType> MansionServerBuilder<M> {
             }
         });
 
-        Ok(MansionServer {
-            recv: eout,
-        })
+        Ok(MansionServer { recv: eout })
     }
 }
