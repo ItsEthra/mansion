@@ -1,6 +1,8 @@
-use mansion::{client::MansionClient, SimpleAdapter, EncryptionTarget};
+use mansion::{client::MansionClient, EncryptionTarget, EncryptedClientAdapter};
+use rsa::{RsaPublicKey, pkcs1::FromRsaPublicKey};
 use serde::{Deserialize, Serialize};
 use std::error::Error;
+use log::LevelFilter;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 enum Message {
@@ -26,16 +28,23 @@ impl EncryptionTarget for Message {
     fn is_response(&self) -> bool {
         matches!(self, Self::EncryptionResponse)
     }
-
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
+    env_logger::builder().filter_level(LevelFilter::Trace).init();
+
     let client = MansionClient::<Message>::builder()
-        .with_adapter(SimpleAdapter::default())
+        .with_adapter(EncryptedClientAdapter::new(
+            RsaPublicKey::from_pkcs1_pem(include_str!("../public.pem")).unwrap(),
+        ))
         .connect("127.0.0.1:9999")
         .await
         .unwrap();
+
+    println!("Encrypt start");
+    dbg!(client.send_wait(Message::EncryptionRequest).await?);
+    println!("Encrypt end");
 
     println!("Pre");
     dbg!(client.send_wait(Message::AddRequest(1, 2)).await?);

@@ -11,7 +11,7 @@ pub use server::*;
 pub trait EncryptionTarget: Sized {
     fn is_request(&self) -> bool;
     fn is_response(&self) -> bool;
-    
+
     fn request() -> Self;
     fn response() -> Self;
 }
