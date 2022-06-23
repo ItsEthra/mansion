@@ -12,6 +12,7 @@ impl<M: MessageType> Default for SimpleAdapter<M> {
 impl<M: MessageType> Adapter for SimpleAdapter<M> {
     type Message = M;
 
+    #[cfg(feature = "server")]
     fn cloned(&self) -> Box<dyn Adapter<Message = Self::Message>> {
         Box::new(SimpleAdapter(PhantomData))
     }

@@ -5,9 +5,9 @@ pub use error::*;
 mod adapter;
 pub use adapter::*;
 
-// #[cfg(feature = "client")]
+#[cfg(feature = "client")]
 pub mod client;
-// #[cfg(feature = "server")]
+#[cfg(feature = "server")]
 pub mod server;
 
 pub use async_trait::async_trait;

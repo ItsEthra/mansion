@@ -6,6 +6,13 @@ pub enum Error {
     Bincode(bincode::Error),
     Closed,
     IdCollision,
+    Custom(Box<dyn std::error::Error + Send + Sync + 'static>),
+}
+
+impl Error {
+    pub fn custom(err: impl std::error::Error + Send + Sync + 'static) -> Self {
+        Self::Custom(Box::new(err))
+    }
 }
 
 impl std::error::Error for Error {}
@@ -16,6 +23,7 @@ impl fmt::Display for Error {
             Error::Bincode(e) => write!(f, "Bincode. {e}"),
             Error::Closed => write!(f, "Connection closed."),
             Error::IdCollision => write!(f, "Id collision occured."),
+            Error::Custom(e) => write!(f, "{e}"),
         }
     }
 }
