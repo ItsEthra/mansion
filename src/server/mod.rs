@@ -88,6 +88,8 @@ pub(crate) async fn write_half<M: MessageType>(
 
         tx.write_u32(buf.len() as u32).await?;
         tx.write_all(&buf[..]).await?;
+
+        buf.clear();
     }
 
     Err(Error::Closed)
