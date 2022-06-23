@@ -16,7 +16,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .await
         .unwrap();
 
+    println!("Pre");
     dbg!(client.send_wait(Message::AddRequest(1, 2)).await?);
+    println!("Post");
 
     Ok(())
 }

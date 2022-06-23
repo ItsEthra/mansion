@@ -58,6 +58,8 @@ pub(crate) async fn read_half<M: MessageType>(
         let len = rx.read_u32().await? as usize;
         buf.resize(len, 0);
 
+        rx.read_exact(&mut buf[..]).await?;
+
         let mut c = Cursored::new(buf);
         let msg = cn.adapter.decode(&mut c)?;
 
