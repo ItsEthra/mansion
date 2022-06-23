@@ -1,3 +1,4 @@
+use crate::Error;
 use std::{
     collections::HashMap,
     sync::atomic::{AtomicU16, Ordering},
@@ -6,7 +7,6 @@ use tokio::sync::{
     oneshot::{self, Receiver, Sender},
     Mutex,
 };
-use crate::Error;
 
 pub struct RequestMap<M> {
     current: AtomicU16,
@@ -36,11 +36,11 @@ impl<M> RequestMap<M> {
 
     /// Returns `true` if other half was successfully notified.
     /// Returns `false` if channel was closed or didn't exist.
-    pub async fn notify(&self, id: u16, msg: M) -> bool {
+    pub async fn notify(&self, id: u16, msg: M) -> crate::Result<()> {
         if let Some(s) = self.map.lock().await.remove(&id) {
-            s.send(msg).is_ok()
+            s.send(msg).map_err(|_| Error::Closed)
         } else {
-            false
+            Ok(())
         }
     }
 }

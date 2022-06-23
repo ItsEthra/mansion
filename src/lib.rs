@@ -2,6 +2,8 @@
 
 mod error;
 pub use error::*;
+mod adapter;
+pub use adapter::*;
 
 // #[cfg(feature = "client")]
 pub mod client;
@@ -9,6 +11,8 @@ pub mod client;
 pub mod server;
 
 pub use async_trait::async_trait;
+pub use cursored::Cursored;
+
 use serde::{de::DeserializeOwned, Serialize};
 use std::future::Future;
 
