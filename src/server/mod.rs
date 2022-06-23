@@ -37,29 +37,39 @@ pub(crate) async fn read_half<M: MessageType>(
     events: flume::Sender<ServerEvent<M>>,
     mut rx: OwnedReadHalf,
 ) -> crate::Result<()> {
-    let mut buf = Vec::new();
+    let out = async {
+        let mut buf = Vec::new();
 
-    loop {
-        let req_id = rx.read_u16().await?;
-        let len = rx.read_u32().await? as usize;
-        buf.resize(len, 0);
+        loop {
+            let req_id = rx.read_u16().await?;
+            let len = rx.read_u32().await? as usize;
+            buf.resize(len, 0);
 
-        rx.read_exact(&mut buf).await?;
+            rx.read_exact(&mut buf).await?;
 
-        let mut c = Cursored::new(buf);
-        let msg = cn.adapter.decode(&mut c)?;
-        buf = c.into_inner();
+            let mut c = Cursored::new(buf);
+            let msg = cn.adapter.decode(&mut c)?;
+            buf = c.into_inner();
 
-        events
-            .send_async(ServerEvent::message(
-                cn.addr,
-                req_id,
-                cn.send_queue.clone(),
-                msg,
-            ))
-            .await
-            .map_err(|_| Error::Closed)?;
+            events
+                .send_async(ServerEvent::message(
+                    cn.addr,
+                    req_id,
+                    cn.send_queue.clone(),
+                    msg,
+                ))
+                .await
+                .map_err(|_| Error::Closed)?;
+        }
     }
+    .await;
+
+    events
+        .send_async(ServerEvent::disconnected(cn.addr))
+        .await
+        .map_err(|_| Error::Closed)?;
+
+    out
 }
 
 pub(crate) async fn write_half<M: MessageType>(

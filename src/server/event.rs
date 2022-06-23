@@ -26,6 +26,14 @@ impl<M: MessageType> ServerEvent<M> {
         }
     }
 
+    pub(crate) fn disconnected(addr: SocketAddr) -> Self {
+        Self {
+            event: Event::Disconnected,
+            sender: None,
+            addr,
+        }
+    }
+
     pub(crate) fn message(addr: SocketAddr, req_id: u16, chn: Sender<(u16, M)>, msg: M) -> Self {
         Self {
             event: Event::Message(msg),
@@ -45,11 +53,15 @@ impl<M: MessageType> ServerEvent<M> {
     }
 
     pub fn is_connected(&self) -> bool {
-        matches!(&self.event, Event::Connected)
+        self.event.is_connected()
+    }
+
+    pub fn is_disconnected(&self) -> bool {
+        self.event.is_disconnected()
     }
 
     pub fn is_message(&self) -> bool {
-        matches!(&self.event, Event::Message(_))
+        self.event.is_message()
     }
 
     pub fn event(&self) -> &Event<M> {
@@ -71,7 +83,22 @@ impl<M: MessageType> ServerEvent<M> {
 
 pub enum Event<M: MessageType> {
     Connected,
+    Disconnected,
     Message(M),
+}
+
+impl<M: MessageType> Event<M> {
+    pub fn is_connected(&self) -> bool {
+        matches!(self, Self::Connected)
+    }
+
+    pub fn is_disconnected(&self) -> bool {
+        matches!(self, Self::Disconnected)
+    }
+
+    pub fn is_message(&self) -> bool {
+        matches!(self, Self::Message(_))
+    }
 }
 
 impl<M: MessageType + Debug> Debug for Event<M> {
@@ -79,6 +106,7 @@ impl<M: MessageType + Debug> Debug for Event<M> {
         match self {
             Self::Connected => write!(f, "Connected"),
             Self::Message(m) => f.debug_tuple("Message").field(m).finish(),
+            Event::Disconnected => write!(f, "Disconnected"),
         }
     }
 }
