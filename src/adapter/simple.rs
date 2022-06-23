@@ -3,6 +3,12 @@ use std::marker::PhantomData;
 use cursored::Cursored;
 
 pub struct SimpleAdapter<M: MessageType>(PhantomData<M>);
+impl<M: MessageType> Default for SimpleAdapter<M> {
+    fn default() -> Self {
+        Self(PhantomData)
+    }
+}
+
 impl<M: MessageType> Adapter for SimpleAdapter<M> {
     type Message = M;
 

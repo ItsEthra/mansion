@@ -1,3 +1,4 @@
+use mansion::{client::MansionClient, SimpleAdapter};
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 
@@ -9,5 +10,13 @@ enum Message {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
+    let client = MansionClient::<Message>::builder()
+        .with_adapter(SimpleAdapter::default())
+        .connect("127.0.0.1:9999")
+        .await
+        .unwrap();
+
+    dbg!(client.send_wait(Message::AddRequest(1, 2)).await?);
+
     Ok(())
 }
