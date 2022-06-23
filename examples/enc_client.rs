@@ -11,12 +11,20 @@ enum Message {
 }
 
 impl EncryptionTarget for Message {
-    fn request(&self) -> bool {
-        matches!(self, Self::EncryptionRequest)
+    fn request() -> Self {
+        Self::EncryptionRequest
     }
 
     fn response() -> Self {
         Self::EncryptionResponse
+    }
+
+    fn is_request(&self) -> bool {
+        matches!(self, Self::EncryptionRequest)
+    }
+
+    fn is_response(&self) -> bool {
+        matches!(self, Self::EncryptionResponse)
     }
 
 }
